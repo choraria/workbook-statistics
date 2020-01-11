@@ -28,53 +28,63 @@ function wbStats() {
   var start = new Date().getTime();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var activeSheet = ss.getActiveSheet();
-  var dataRange = activeSheet.getDataRange();
-  var dataValues = dataRange.getValues();
-  var formulaRanges = dataRange.getFormulas();  
   var allSheets = ss.getSheets();
   var title = 'Workbook Statistics';
   
   // Current Sheet Data
+  
   ss.toast(" 🔥 Fetching: Current Sheet > Sheet Name...", title, -1);
   var sheetNameCS = activeSheet.getName();
   Logger.log("Current Sheet > Sheet Name " + sheetNameCS);
   
-  ss.toast(" 🔥 Fetching: Current Sheet > End of Sheet...", title, -1);
-  var endOfSheetCS;
-  try {
-    endOfSheetCS = activeSheet.getRange(activeSheet.getLastRow(), activeSheet.getLastColumn()).getA1Notation();
-  } catch (e) {
-    endOfSheetCS = 'A1';
+  if (activeSheet.getType() == 'GRID') {
+    var dataRange = activeSheet.getDataRange();
+    var dataValues = dataRange.getValues();
+    var formulaRanges = dataRange.getFormulas();  
+    
+    ss.toast(" 🔥 Fetching: Current Sheet > End of Sheet...", title, -1);
+    var endOfSheetCS;
+    try {
+      endOfSheetCS = activeSheet.getRange(activeSheet.getLastRow(), activeSheet.getLastColumn()).getA1Notation();
+    } catch (e) {
+      endOfSheetCS = 'A1';
+    }
+    Logger.log("Current Sheet > End of Sheet " + endOfSheetCS);
+    
+    ss.toast(" 🔥 Fetching: Current Sheet > Cells with Data...", title, -1);
+    var cellsWithDataCS = dataValues.map(function(sub) {
+      return sub.reduce(function(prev, cur) {
+        return prev + (!!cur);
+      }, 0);
+    }).reduce(function(a,b){
+      return a + b;
+    }, 0);
+    Logger.log("Current Sheet > Cells with Data " + cellsWithDataCS);
+    
+    ss.toast(" 🔥 Fetching: Current Sheet > Named Ranges...", title, -1);
+    var namedRangesCS = activeSheet.getNamedRanges().length;
+    Logger.log("Current Sheet > Named Ranges " + namedRangesCS);
+    
+    ss.toast(" 🔥 Fetching: Current Sheet > Pivot Tables...", title, -1);
+    var pivotTablesCS = activeSheet.getPivotTables().length;
+    Logger.log("Current Sheet > Pivot Tables " + pivotTablesCS);
+    
+    ss.toast(" 🔥 Fetching: Current Sheet > Formulas...", title, -1);
+    var formulasCS = formulaRanges.map(function(sub) {
+      return sub.reduce(function(prev, cur) {
+        return prev + (!!cur);
+      }, 0);
+    }).reduce(function(a,b){
+      return a + b
+    }, 0);
+    Logger.log("Current Sheet > Formulas " + formulasCS);
+  } else {
+    endOfSheetCS = 'N/A';
+    cellsWithDataCS = 'N/A';
+    namedRangesCS = 'N/A';
+    pivotTablesCS = 'N/A';
+    formulasCS = 'N/A';
   }
-  Logger.log("Current Sheet > End of Sheet " + endOfSheetCS);
-  
-  ss.toast(" 🔥 Fetching: Current Sheet > Cells with Data...", title, -1);
-  var cellsWithDataCS = dataValues.map(function(sub) {
-    return sub.reduce(function(prev, cur) {
-      return prev + (!!cur);
-    }, 0);
-  }).reduce(function(a,b){
-    return a + b;
-  }, 0);
-  Logger.log("Current Sheet > Cells with Data " + cellsWithDataCS);
-  
-  ss.toast(" 🔥 Fetching: Current Sheet > Named Ranges...", title, -1);
-  var namedRangesCS = activeSheet.getNamedRanges().length;
-  Logger.log("Current Sheet > Named Ranges " + namedRangesCS);
-  
-  ss.toast(" 🔥 Fetching: Current Sheet > Pivot Tables...", title, -1);
-  var pivotTablesCS = activeSheet.getPivotTables().length;
-  Logger.log("Current Sheet > Pivot Tables " + pivotTablesCS);
-  
-  ss.toast(" 🔥 Fetching: Current Sheet > Formulas...", title, -1);
-  var formulasCS = formulaRanges.map(function(sub) {
-    return sub.reduce(function(prev, cur) {
-      return prev + (!!cur);
-    }, 0);
-  }).reduce(function(a,b){
-    return a + b
-  }, 0);
-  Logger.log("Current Sheet > Formulas " + formulasCS);
   
   ss.toast(" 🔥 Fetching: Current Sheet > Charts...", title, -1);
   var chartsCS = activeSheet.getCharts().length;
@@ -90,15 +100,17 @@ function wbStats() {
   var cellsWithDataWB = 0;
   for (var i = 0; i < allSheets.length; i++) {
     var sheet = allSheets[i];
-    var currentSheetValues = ss.getSheetByName(sheet.getName()).getDataRange().getValues();
-    var currentSheetData = currentSheetValues.map(function(sub) {
-      return sub.reduce(function(prev, cur) {
-        return prev + (!!cur);
+    if (sheet.getType() == 'GRID') {
+      var currentSheetValues = ss.getSheetByName(sheet.getName()).getDataRange().getValues();
+      var currentSheetData = currentSheetValues.map(function(sub) {
+        return sub.reduce(function(prev, cur) {
+          return prev + (!!cur);
+        }, 0);
+      }).reduce(function(a,b){
+        return a + b;
       }, 0);
-    }).reduce(function(a,b){
-      return a + b;
-    }, 0);
-    cellsWithDataWB = cellsWithDataWB + currentSheetData;
+      cellsWithDataWB = cellsWithDataWB + currentSheetData;
+    }
   }
   Logger.log("Workbook > Cells with Data " + cellsWithDataWB);
   
@@ -111,7 +123,9 @@ function wbStats() {
   Logger.log("Workbook > Named Ranges " + namedRangesWB)
   
   ss.toast(" 🔥 Fetching: Workbook > Pivot Tables...", title, -1);
-  var pivotTablesWB = allSheets.map(function(sheet) {
+  var pivotTablesWB = allSheets.filter(function(sheet) {
+    return ss.getSheetByName(sheet.getName()).getType() == 'GRID';
+  }).map(function(sheet) {
     return ss.getSheetByName(sheet.getName()).getPivotTables().length;
   }).reduce(function(a,b){
     return a + b;
@@ -122,15 +136,17 @@ function wbStats() {
   var formulasWB = 0;
   for (var i = 0; i < allSheets.length; i++) {
     var sheet = allSheets[i];
-    var currentSheetValues = ss.getSheetByName(sheet.getName()).getDataRange().getFormulas();
-    var currentSheetFormulas = currentSheetValues.map(function(sub) {
-      return sub.reduce(function(prev, cur) {
-        return prev + (!!cur);
+    if (sheet.getType() == 'GRID') {
+      var currentSheetValues = ss.getSheetByName(sheet.getName()).getDataRange().getFormulas();
+      var currentSheetFormulas = currentSheetValues.map(function(sub) {
+        return sub.reduce(function(prev, cur) {
+          return prev + (!!cur);
+        }, 0);
+      }).reduce(function(a,b){
+        return a + b;
       }, 0);
-    }).reduce(function(a,b){
-      return a + b;
-    }, 0);
-    formulasWB = formulasWB + currentSheetFormulas;
+      formulasWB = formulasWB + currentSheetFormulas;
+    }
   }
   Logger.log("Workbook > Formulas " + formulasWB);  
   
