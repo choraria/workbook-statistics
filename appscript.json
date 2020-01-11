@@ -1,0 +1,9 @@
+{
+  "timeZone": "Asia/Kolkata",
+  "dependencies": {
+  },
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/spreadsheets.currentonly"
+  ],
+  "exceptionLogging": "STACKDRIVER"
+}
